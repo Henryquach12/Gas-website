@@ -15,7 +15,7 @@ hamburger.addEventListener('click', () => {
 });
 
 navLinks.addEventListener('click', (e) => {
-  if (e.target.tagName === 'A') {
+  if (e.target.tagName === 'A' && !e.target.closest('.nav-dropdown')) {
     hamburger.classList.remove('open');
     navLinks.classList.remove('open');
   }
@@ -24,7 +24,7 @@ navLinks.addEventListener('click', (e) => {
 /* ===== Active nav link ===== */
 function updateActiveLink() {
   const sections = document.querySelectorAll('section[id]');
-  const links    = document.querySelectorAll('.nav-links a');
+  const links    = document.querySelectorAll('.nav-links > li > a');
   let current    = '';
   sections.forEach(s => { if (window.scrollY >= s.offsetTop - 100) current = s.id; });
   links.forEach(l => {
@@ -33,7 +33,47 @@ function updateActiveLink() {
   });
 }
 
-/* ===== Intersection observer (fade-in) ===== */
+/* ===== Nav dropdown ===== */
+const dropdownItem   = document.querySelector('.has-dropdown');
+const dropdownTrigger = document.querySelector('.dropdown-trigger');
+
+dropdownTrigger.addEventListener('click', (e) => {
+  if (window.innerWidth <= 640) {
+    e.preventDefault();
+    dropdownItem.classList.toggle('open');
+  }
+});
+
+document.querySelectorAll('.nav-dropdown a[data-cat]').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    setFilter(link.dataset.cat);
+    dropdownItem.classList.remove('open');
+    hamburger.classList.remove('open');
+    navLinks.classList.remove('open');
+    document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+/* ===== Filter state ===== */
+let activeFilter = '';
+
+function setFilter(cat) {
+  activeFilter = cat;
+  const bar = document.getElementById('filterBar');
+  const tag = document.getElementById('filterTag');
+  if (cat) {
+    tag.textContent   = cat;
+    bar.style.display = 'flex';
+  } else {
+    bar.style.display = 'none';
+  }
+  renderProducts();
+}
+
+document.getElementById('filterClear').addEventListener('click', () => setFilter(''));
+
+/* ===== Fade-in observer ===== */
 const fadeObserver = new IntersectionObserver(
   (entries) => entries.forEach(e => {
     if (e.isIntersecting) {
@@ -45,7 +85,7 @@ const fadeObserver = new IntersectionObserver(
   { threshold: 0.1 }
 );
 
-/* ===== Storage helpers ===== */
+/* ===== Storage ===== */
 function getProducts() {
   try { return JSON.parse(localStorage.getItem('gas_products') || '[]'); }
   catch { return []; }
@@ -59,42 +99,59 @@ function saveOrder(order) {
   } catch { /* ignore */ }
 }
 
-/* ===== Format VND price ===== */
+/* ===== Helpers ===== */
 function formatPrice(price) {
   return Number(price).toLocaleString('vi-VN') + 'đ';
 }
 
-/* ===== XSS-safe string escape ===== */
 function escHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-/* ===== Render product grid ===== */
-function renderProducts() {
-  const grid     = document.getElementById('productsGrid');
-  const products = getProducts();
+function catIcon(cat) {
+  if (!cat) return '🛒';
+  if (cat === 'Bình Gas') return '🛢️';
+  if (cat === 'Bếp Gas')  return '🔥';
+  if (cat === 'Bình Nước') return '💧';
+  if (cat === 'Nệm')      return '🛏️';
+  return '📦';
+}
 
-  if (products.length === 0) {
+/* ===== Render products ===== */
+function renderProducts() {
+  const grid    = document.getElementById('productsGrid');
+  const all     = getProducts();
+  const visible = activeFilter ? all.filter(p => p.category === activeFilter) : all;
+
+  if (all.length === 0) {
     grid.innerHTML = `
       <div class="products-empty">
-        <div class="empty-icon">🛢️</div>
+        <div class="empty-icon">🛒</div>
         <h3>Sản phẩm đang được cập nhật</h3>
         <p>Vui lòng liên hệ trực tiếp hoặc quay lại sau.</p>
       </div>`;
     return;
   }
 
-  grid.innerHTML = products.map(p => `
+  if (visible.length === 0) {
+    grid.innerHTML = `
+      <div class="products-empty">
+        <div class="empty-icon">${catIcon(activeFilter)}</div>
+        <h3>Không có sản phẩm trong danh mục này</h3>
+        <p><button onclick="setFilter('')" style="background:none;border:1.5px solid #2563eb;color:#2563eb;border-radius:8px;padding:.4rem 1rem;cursor:pointer;font-weight:600">Xem tất cả sản phẩm</button></p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = visible.map(p => `
     <div class="product-card">
       ${p.image
         ? `<img class="product-img" src="${escHtml(p.image)}" alt="${escHtml(p.name)}">`
-        : `<div class="product-img-placeholder">🛢️</div>`}
+        : `<div class="product-img-placeholder">${catIcon(p.category)}</div>`}
       <div class="product-body">
-        <div class="product-category">${escHtml(p.category || 'Gas')}</div>
+        <div class="product-category">${escHtml(p.category || 'Sản phẩm')}</div>
         <div class="product-name">${escHtml(p.name)}</div>
         <div class="product-desc">${escHtml(p.description || '')}</div>
         <div class="product-price">${formatPrice(p.price)}</div>
@@ -103,7 +160,6 @@ function renderProducts() {
     </div>
   `).join('');
 
-  /* Fade-in animation */
   grid.querySelectorAll('.product-card').forEach(el => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(24px)';
@@ -111,11 +167,9 @@ function renderProducts() {
     fadeObserver.observe(el);
   });
 
-  /* Delegate click to order buttons */
-  grid.addEventListener('click', (e) => {
-    const btn = e.target.closest('.product-order-btn');
-    if (btn) openOrderModal(btn.dataset.id);
-  }, { once: true });
+  grid.querySelectorAll('.product-order-btn').forEach(btn => {
+    btn.addEventListener('click', () => openOrderModal(btn.dataset.id));
+  });
 }
 
 /* ===== Order modal ===== */
@@ -129,7 +183,7 @@ function openOrderModal(productId) {
   document.getElementById('modalProduct').innerHTML = `
     ${p.image
       ? `<img src="${escHtml(p.image)}" alt="${escHtml(p.name)}">`
-      : `<div class="modal-product-placeholder">🛢️</div>`}
+      : `<div class="modal-product-placeholder">${catIcon(p.category)}</div>`}
     <div>
       <div class="modal-product-name">${escHtml(p.name)}</div>
       <div class="modal-product-price">${formatPrice(p.price)}</div>
@@ -157,21 +211,19 @@ document.getElementById('orderModal').addEventListener('click', (e) => {
 });
 document.getElementById('successClose').addEventListener('click', () => closeModal('successModal'));
 
-/* ===== Validation helpers ===== */
+/* ===== Validation ===== */
 const PHONE_RE = /^(0[35789])\d{8}$/;
 
 function markError(inputId, errorId, msg) {
-  const el = document.getElementById(inputId);
-  el.classList.add('error');
-  el.classList.remove('valid');
+  document.getElementById(inputId).classList.add('error');
+  document.getElementById(inputId).classList.remove('valid');
   document.getElementById(errorId).textContent = msg;
   return false;
 }
 
 function markValid(inputId, errorId) {
-  const el = document.getElementById(inputId);
-  el.classList.remove('error');
-  el.classList.add('valid');
+  document.getElementById(inputId).classList.remove('error');
+  document.getElementById(inputId).classList.add('valid');
   document.getElementById(errorId).textContent = '';
   return true;
 }
@@ -215,7 +267,7 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   e.preventDefault();
   if (!validateOrder()) return;
 
-  const p       = getProducts().find(x => x.id === currentProductId);
+  const p = getProducts().find(x => x.id === currentProductId);
   if (!p) return;
 
   const qty     = parseInt(document.getElementById('orderQty').value, 10);
@@ -246,14 +298,6 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
     `Cảm ơn ${name}! Đơn hàng đã được ghi nhận. Chúng tôi sẽ gọi lại số ${phone} để xác nhận và sắp xếp giao hàng.`;
   openModal('successModal');
 });
-
-/* ===== Toast ===== */
-function showToast(msg, ms = 3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), ms);
-}
 
 /* ===== Init ===== */
 renderProducts();

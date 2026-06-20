@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Gas Lê Văn Tiền 3 — Cung cấp gas chính hãng, giao hàng tận nhà, phục vụ tận tâm tại TP. Hồ Chí Minh." />
-  <title>Gas Lê Văn Tiền 3</title>
+  <meta name="description" content="Lê Văn Tiền 3 — Bình gas, bếp gas, bình nước, nệm chính hãng. 665 Trần Hưng Đạo, Bình Đức, An Giang. ĐT: +84984001152." />
+  <title>Lê Văn Tiền 3 — Gas · Nệm · Bình Nước · Bếp Gas</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -18,7 +18,16 @@
       </div>
 
       <ul class="nav-links">
-        <li><a href="#products">Sản Phẩm</a></li>
+        <li class="has-dropdown">
+          <a href="#products" class="dropdown-trigger">Sản Phẩm <span class="dropdown-caret">▾</span></a>
+          <ul class="nav-dropdown">
+            <li><a href="#products" data-cat="">🛒 Tất Cả</a></li>
+            <li><a href="#products" data-cat="Bình Gas">🛢️ Bình Gas</a></li>
+            <li><a href="#products" data-cat="Bếp Gas">🔥 Bếp Gas</a></li>
+            <li><a href="#products" data-cat="Bình Nước">💧 Bình Nước</a></li>
+            <li><a href="#products" data-cat="Nệm">🛏️ Nệm</a></li>
+          </ul>
+        </li>
         <li><a href="#promotions">Ưu Đãi</a></li>
         <li><a href="#reviews">Đánh Giá</a></li>
         <li><a href="#info">Thông Tin</a></li>
@@ -40,12 +49,12 @@
       <div class="hero-content">
         <span class="hero-badge">Giao hàng tận nơi — nhanh chóng &amp; uy tín</span>
         <h1>
-          Gas Lê Văn Tiền 3<br />
+          Lê Văn Tiền 3<br />
           <span class="highlight">Tận Tâm Phục Vụ</span>
         </h1>
         <p>
-          Cung cấp gas chính hãng, giá tốt, giao hàng nhanh tận nhà tại TP. Hồ Chí Minh.
-          Chỉ cần chọn sản phẩm, điền thông tin — chúng tôi lo phần còn lại.
+          Cung cấp bình gas, bếp gas, bình nước và nệm chính hãng tại Bình Đức, An Giang.
+          Giao hàng tận nhà — chỉ cần chọn sản phẩm và điền thông tin, chúng tôi lo phần còn lại.
         </p>
         <div class="hero-actions">
           <a href="#products" class="btn btn-primary">Xem Sản Phẩm</a>
@@ -61,7 +70,12 @@
       <div class="section-header">
         <span class="eyebrow">Danh Mục</span>
         <h2>Sản Phẩm</h2>
-        <p>Bình gas chính hãng, đa dạng thương hiệu và quy cách đóng gói. Nhấn "Đặt Hàng" để đặt ngay.</p>
+        <p>Bình gas, bếp gas, bình nước, nệm — chính hãng, giá tốt. Nhấn "Đặt Hàng" để đặt ngay.</p>
+      </div>
+      <div class="filter-bar" id="filterBar" style="display:none">
+        <span class="filter-label">Lọc:</span>
+        <span class="filter-tag" id="filterTag"></span>
+        <button class="filter-clear" id="filterClear">✕ Xem tất cả</button>
       </div>
       <div class="products-grid" id="productsGrid"></div>
     </div>
@@ -152,17 +166,20 @@
         <div class="info-card">
           <div class="info-icon">📍</div>
           <h3>Địa Chỉ</h3>
-          <p>TP. Hồ Chí Minh, Việt Nam</p>
+          <p>665 Trần Hưng Đạo,<br>Bình Đức, An Giang, Việt Nam</p>
         </div>
         <div class="info-card">
           <div class="info-icon">📞</div>
           <h3>Điện Thoại</h3>
-          <p><a href="tel:+84000000000">+84 000 000 000</a></p>
+          <p>
+            <a href="tel:+84984001152">+84 984 001 152</a><br>
+            <a href="tel:+84949666647">+84 949 666 647</a>
+          </p>
         </div>
         <div class="info-card">
           <div class="info-icon">🕐</div>
           <h3>Giờ Mở Cửa</h3>
-          <p>Thứ 2 – Thứ 7: 7:00 – 19:00<br>Chủ Nhật: 8:00 – 17:00</p>
+          <p>Tất cả các ngày<br>6:00 – 19:00</p>
         </div>
         <div class="info-card">
           <div class="info-icon">📘</div>
@@ -179,7 +196,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="logo">Gas Lê Văn Tiền 3</div>
-          <p>Cung cấp gas chính hãng, giao hàng tận nhà, phục vụ tận tâm tại TP. Hồ Chí Minh.</p>
+          <p>665 Trần Hưng Đạo, Bình Đức, An Giang.<br>Mở cửa tất cả các ngày: 6:00 – 19:00.</p>
           <div class="social-links">
             <a href="https://www.facebook.com/henry.quach.100" target="_blank" rel="noopener" class="social-btn" aria-label="Facebook">f</a>
           </div>
@@ -197,17 +214,10 @@
         <div class="footer-col">
           <h4>Danh Mục</h4>
           <ul>
-            <li><a href="#products">Bình Gas 6kg</a></li>
-            <li><a href="#products">Bình Gas 12kg</a></li>
-            <li><a href="#products">Bình Gas 45kg</a></li>
+            <li><a href="#products">Bình Gas</a></li>
             <li><a href="#products">Bếp Gas</a></li>
-            <li><a href="#products">Phụ Kiện</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>Khác</h4>
-          <ul>
-            <li><a href="../admin/index.html">Quản Lý Cửa Hàng</a></li>
+            <li><a href="#products">Bình Nước</a></li>
+            <li><a href="#products">Nệm</a></li>
           </ul>
         </div>
       </div>

@@ -1,50 +1,76 @@
 /* ===== Constants ===== */
-const DEFAULT_PW    = 'gas2024';
-const SESSION_KEY   = 'gas_admin_session';
-const PRODUCTS_KEY  = 'gas_products';
-const ORDERS_KEY    = 'gas_orders';
-const PW_KEY        = 'gas_admin_password';
+const DEFAULT_PW   = 'gas2024';
+const SESSION_KEY  = 'gas_admin_session';
+const PRODUCTS_KEY = 'gas_products';
+const ORDERS_KEY   = 'gas_orders';
+const PW_KEY       = 'gas_admin_password';
+
+/* ===== DOM refs ===== */
+const loginGate  = document.getElementById('loginGate');
+const adminPanel = document.getElementById('adminPanel');
 
 /* ===== Auth ===== */
-function isLoggedIn()   { return sessionStorage.getItem(SESSION_KEY) === '1'; }
-function storedPw()     { return localStorage.getItem(PW_KEY) || DEFAULT_PW; }
+function isLoggedIn() {
+  return sessionStorage.getItem(SESSION_KEY) === '1';
+}
+
+function getStoredPassword() {
+  return localStorage.getItem(PW_KEY) || DEFAULT_PW;
+}
 
 function login(pw) {
-  if (pw !== storedPw()) return false;
-  sessionStorage.setItem(SESSION_KEY, '1');
-  return true;
+  if (pw.trim() === getStoredPassword()) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    return true;
+  }
+  return false;
 }
 
 function logout() {
   sessionStorage.removeItem(SESSION_KEY);
-  document.getElementById('adminPanel').hidden = true;
-  document.getElementById('loginGate').hidden  = false;
+  adminPanel.style.display = 'none';
+  loginGate.style.display  = 'flex';
   document.getElementById('loginPassword').value = '';
-  document.getElementById('loginError').textContent = '';
+  clearLoginError();
+}
+
+function showPanel() {
+  loginGate.style.display  = 'none';
+  adminPanel.style.display = 'block';
+  renderProductList();
+  renderOrderList();
 }
 
 /* ===== Login form ===== */
-document.getElementById('loginForm').addEventListener('submit', (e) => {
+const loginForm     = document.getElementById('loginForm');
+const loginInput    = document.getElementById('loginPassword');
+const loginErrorEl  = document.getElementById('loginError');
+
+function clearLoginError() {
+  loginErrorEl.textContent = '';
+  loginInput.classList.remove('error');
+}
+
+loginInput.addEventListener('input', clearLoginError);
+
+loginForm.addEventListener('submit', (e) => {
   e.preventDefault();
-  const pw  = document.getElementById('loginPassword').value;
-  const err = document.getElementById('loginError');
+  const pw = loginInput.value;
+  if (!pw) {
+    loginErrorEl.textContent = 'Vui lòng nhập mật khẩu.';
+    loginInput.classList.add('error');
+    return;
+  }
   if (login(pw)) {
-    err.textContent = '';
-    showAdminPanel();
+    showPanel();
   } else {
-    err.textContent = 'Mật khẩu không đúng.';
-    document.getElementById('loginPassword').classList.add('error');
+    loginErrorEl.textContent = 'Mật khẩu không đúng. Thử lại.';
+    loginInput.classList.add('error');
+    loginInput.select();
   }
 });
 
 document.getElementById('logoutBtn').addEventListener('click', logout);
-
-function showAdminPanel() {
-  document.getElementById('loginGate').hidden  = true;
-  document.getElementById('adminPanel').hidden = false;
-  renderProductList();
-  renderOrderList();
-}
 
 /* ===== Tabs ===== */
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -81,21 +107,21 @@ function formatPrice(p) {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /* ===== Image upload ===== */
 let currentImageBase64 = null;
 
-const uploadArea     = document.getElementById('imageUploadArea');
-const fileInput      = document.getElementById('productImage');
-const previewImg     = document.getElementById('imagePreview');
-const placeholder    = document.getElementById('imageUploadPlaceholder');
-const removeBtn      = document.getElementById('removeImageBtn');
+const uploadArea  = document.getElementById('imageUploadArea');
+const fileInput   = document.getElementById('productImage');
+const previewImg  = document.getElementById('imagePreview');
+const placeholder = document.getElementById('imageUploadPlaceholder');
+const removeBtn   = document.getElementById('removeImageBtn');
 
 uploadArea.addEventListener('click', (e) => {
-  if (e.target === removeBtn || removeBtn.contains(e.target)) return;
+  if (removeBtn.contains(e.target)) return;
   fileInput.click();
 });
 
@@ -106,19 +132,17 @@ uploadArea.addEventListener('keydown', (e) => {
 fileInput.addEventListener('change', () => {
   const file = fileInput.files[0];
   if (!file) return;
-  const imgErrEl = document.getElementById('productImageError');
-
+  const imgErr = document.getElementById('productImageError');
   if (file.size > 5 * 1024 * 1024) {
-    imgErrEl.textContent = 'Ảnh quá lớn — tối đa 5MB.';
+    imgErr.textContent = 'Ảnh quá lớn — tối đa 5MB.';
     fileInput.value = '';
     return;
   }
-  imgErrEl.textContent = '';
-
+  imgErr.textContent = '';
   const reader = new FileReader();
   reader.onload = (ev) => {
     currentImageBase64 = ev.target.result;
-    previewImg.src       = currentImageBase64;
+    previewImg.src             = currentImageBase64;
     previewImg.style.display   = 'block';
     placeholder.style.display  = 'none';
     removeBtn.style.display    = 'block';
@@ -132,28 +156,28 @@ removeBtn.addEventListener('click', (e) => {
 });
 
 function clearImage() {
-  currentImageBase64         = null;
-  fileInput.value            = '';
-  previewImg.src             = '';
-  previewImg.style.display   = 'none';
-  placeholder.style.display  = 'flex';
-  removeBtn.style.display    = 'none';
+  currentImageBase64        = null;
+  fileInput.value           = '';
+  previewImg.src            = '';
+  previewImg.style.display  = 'none';
+  placeholder.style.display = 'flex';
+  removeBtn.style.display   = 'none';
 }
 
-function setImageFromUrl(src) {
+function loadImagePreview(src) {
   if (!src) { clearImage(); return; }
-  currentImageBase64         = src;
-  previewImg.src             = src;
-  previewImg.style.display   = 'block';
-  placeholder.style.display  = 'none';
-  removeBtn.style.display    = 'block';
+  currentImageBase64        = src;
+  previewImg.src            = src;
+  previewImg.style.display  = 'block';
+  placeholder.style.display = 'none';
+  removeBtn.style.display   = 'block';
 }
 
 /* ===== Product form validation ===== */
 function validateProductForm() {
   let ok = true;
 
-  const name = document.getElementById('productName').value.trim();
+  const name    = document.getElementById('productName').value.trim();
   const nameErr = document.getElementById('productNameError');
   if (name.length < 2) {
     nameErr.textContent = 'Tên sản phẩm phải ít nhất 2 ký tự.';
@@ -212,10 +236,10 @@ document.getElementById('productForm').addEventListener('submit', (e) => {
         image: currentImageBase64 !== null ? currentImageBase64 : products[idx].image,
         updatedAt: new Date().toISOString(),
       };
-      saveProducts(products);
-      showToast('Đã cập nhật sản phẩm!');
-      cancelEdit();
     }
+    saveProducts(products);
+    showToast('Đã cập nhật sản phẩm!');
+    cancelEdit();
   } else {
     products.push({
       id: 'prod_' + Date.now(),
@@ -237,17 +261,16 @@ function startEdit(productId) {
   if (!p) return;
 
   editingId = productId;
-  document.getElementById('editProductId').value          = productId;
-  document.getElementById('productName').value            = p.name;
-  document.getElementById('productCategory').value        = p.category;
-  document.getElementById('productPrice').value           = p.price;
-  document.getElementById('productStock').value           = p.stock ?? '';
-  document.getElementById('productDesc').value            = p.description || '';
-  setImageFromUrl(p.image || null);
+  document.getElementById('productName').value     = p.name;
+  document.getElementById('productCategory').value = p.category;
+  document.getElementById('productPrice').value    = p.price;
+  document.getElementById('productStock').value    = p.stock ?? '';
+  document.getElementById('productDesc').value     = p.description || '';
+  loadImagePreview(p.image || null);
 
-  document.getElementById('productFormTitle').textContent  = 'Chỉnh Sửa Sản Phẩm';
-  document.getElementById('productSubmitBtn').textContent  = 'Lưu Thay Đổi';
-  document.getElementById('cancelEditBtn').hidden          = false;
+  document.getElementById('productFormTitle').textContent = 'Chỉnh Sửa Sản Phẩm';
+  document.getElementById('productSubmitBtn').textContent = 'Lưu Thay Đổi';
+  document.getElementById('cancelEditBtn').style.display  = 'inline-block';
 
   document.getElementById('productForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -258,13 +281,11 @@ function cancelEdit() {
   clearImage();
   document.getElementById('productFormTitle').textContent = 'Thêm Sản Phẩm Mới';
   document.getElementById('productSubmitBtn').textContent = 'Thêm Sản Phẩm';
-  document.getElementById('cancelEditBtn').hidden         = true;
-  ['productNameError','productCategoryError','productPriceError'].forEach(id => {
-    document.getElementById(id).textContent = '';
-  });
-  ['productName','productPrice'].forEach(id => {
-    document.getElementById(id).classList.remove('error','valid');
-  });
+  document.getElementById('cancelEditBtn').style.display  = 'none';
+  ['productNameError','productCategoryError','productPriceError']
+    .forEach(id => { document.getElementById(id).textContent = ''; });
+  ['productName','productPrice']
+    .forEach(id => document.getElementById(id).classList.remove('error','valid'));
 }
 
 document.getElementById('cancelEditBtn').addEventListener('click', cancelEdit);
@@ -354,8 +375,7 @@ function renderOrderList() {
           <span class="order-id">Mã: ${escHtml(o.id)}</span>
           <span class="order-date">${date}</span>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
@@ -377,5 +397,8 @@ function showToast(msg, ms = 3000) {
 
 /* ===== Init ===== */
 if (isLoggedIn()) {
-  showAdminPanel();
+  loginGate.style.display  = 'none';
+  adminPanel.style.display = 'block';
+  renderProductList();
+  renderOrderList();
 }
