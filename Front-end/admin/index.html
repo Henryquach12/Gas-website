@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản Lý — Gas Lê Văn Tiền 3</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ===== LOGIN GATE ===== -->
+  <div id="loginGate" class="admin-login-gate">
+    <div class="admin-login-box">
+      <div class="admin-login-logo">🛢️</div>
+      <h1>Quản Lý Cửa Hàng</h1>
+      <p class="admin-login-sub">Gas Lê Văn Tiền 3</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginPassword">Mật khẩu</label>
+          <input type="password" id="loginPassword" placeholder="Nhập mật khẩu..." autocomplete="current-password" />
+          <span class="field-error" id="loginError"></span>
+        </div>
+        <button type="submit" class="form-submit">Đăng Nhập</button>
+      </form>
+      <a href="../website/index.html" class="back-link">← Về trang chủ</a>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN PANEL ===== -->
+  <div id="adminPanel" style="display:none">
+
+    <header class="admin-header">
+      <div class="container admin-header-inner">
+        <div class="admin-brand">🛢️ Quản Lý — Gas Lê Văn Tiền 3</div>
+        <div class="admin-header-actions">
+          <a href="../website/index.html" class="btn btn-outline btn-sm">Xem trang chủ</a>
+          <button id="logoutBtn" class="btn btn-outline btn-sm">Đăng xuất</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-tabs">
+      <div class="container">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="products">Sản Phẩm</button>
+          <button class="tab-btn" data-tab="orders">Đơn Hàng</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container admin-body">
+
+      <!-- ===== PRODUCTS TAB ===== -->
+      <div class="tab-panel active" id="tab-products">
+
+        <div class="admin-card">
+          <h2 id="productFormTitle">Thêm Sản Phẩm Mới</h2>
+          <form id="productForm">
+            <input type="hidden" id="editProductId" />
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="productName">Tên sản phẩm <span class="required">*</span></label>
+                <input type="text" id="productName" placeholder="VD: Bình Gas 12kg Shell" />
+                <span class="field-error" id="productNameError"></span>
+              </div>
+              <div class="form-group">
+                <label for="productCategory">Danh mục <span class="required">*</span></label>
+                <select id="productCategory">
+                  <option value="">-- Chọn danh mục --</option>
+                  <option value="Bình Gas 6kg">Bình Gas 6kg</option>
+                  <option value="Bình Gas 12kg">Bình Gas 12kg</option>
+                  <option value="Bình Gas 45kg">Bình Gas 45kg</option>
+                  <option value="Bếp Gas">Bếp Gas</option>
+                  <option value="Phụ Kiện">Phụ Kiện</option>
+                </select>
+                <span class="field-error" id="productCategoryError"></span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="productPrice">Giá (VNĐ) <span class="required">*</span></label>
+                <input type="number" id="productPrice" placeholder="VD: 350000" min="0" />
+                <span class="field-error" id="productPriceError"></span>
+              </div>
+              <div class="form-group">
+                <label for="productStock">Tồn kho (tuỳ chọn)</label>
+                <input type="number" id="productStock" placeholder="Số lượng còn" min="0" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="productDesc">Mô tả (tuỳ chọn)</label>
+              <textarea id="productDesc" placeholder="Thông tin thêm về sản phẩm..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Hình ảnh sản phẩm</label>
+              <div class="image-upload-area" id="imageUploadArea" tabindex="0">
+                <input type="file" id="productImage" accept="image/*" />
+                <div class="image-upload-placeholder" id="imageUploadPlaceholder">
+                  <span class="upload-icon">📷</span>
+                  <span class="upload-label">Nhấn để chọn ảnh</span>
+                  <span class="upload-hint">JPG, PNG, WEBP — Tối đa 5MB</span>
+                </div>
+                <img id="imagePreview" class="image-preview" src="" alt="Xem trước" />
+                <button type="button" class="remove-image-btn" id="removeImageBtn">✕ Xóa ảnh</button>
+              </div>
+              <span class="field-error" id="productImageError"></span>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" id="productSubmitBtn">Thêm Sản Phẩm</button>
+              <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none">Hủy chỉnh sửa</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2>Danh Sách Sản Phẩm</h2>
+            <span class="product-count" id="productCount">0 sản phẩm</span>
+          </div>
+          <div id="adminProductList"></div>
+        </div>
+      </div>
+
+      <!-- ===== ORDERS TAB ===== -->
+      <div class="tab-panel" id="tab-orders">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h2>Danh Sách Đơn Hàng</h2>
+            <button id="clearOrdersBtn" class="btn btn-outline btn-sm">Xóa tất cả</button>
+          </div>
+          <div id="adminOrderList"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== DELETE CONFIRM MODAL ===== -->
+  <div class="modal-overlay" id="deleteModal" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width:360px;text-align:center">
+      <h2 style="margin-bottom:.75rem">Xóa sản phẩm?</h2>
+      <p style="color:var(--color-gray);margin-bottom:1.5rem">Hành động này không thể hoàn tác.</p>
+      <div style="display:flex;gap:1rem">
+        <button class="btn btn-outline" id="cancelDeleteBtn" style="flex:1">Hủy</button>
+        <button class="btn btn-primary" id="confirmDeleteBtn" style="flex:1;background:#dc2626;border-color:#dc2626">Xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="admin.js"></script>
+</body>
+</html>
