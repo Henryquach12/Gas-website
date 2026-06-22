@@ -41,9 +41,9 @@ class Config:
     JWT_BLACKLIST_ENABLED = True
     JWT_BLACKLIST_TOKEN_CHECKS = ["access", "refresh"]
 
-    # ── Stripe ────────────────────────────────────────────────────────────────
-    STRIPE_SECRET_KEY = os.environ["STRIPE_SECRET_KEY"]
-    STRIPE_WEBHOOK_SECRET = os.environ["STRIPE_WEBHOOK_SECRET"]
+    # ── Stripe (tùy chọn — chỉ cần nếu dùng thanh toán thẻ) ─────────────────
+    STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+    STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5500")
