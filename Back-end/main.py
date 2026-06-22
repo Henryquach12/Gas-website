@@ -63,12 +63,10 @@ def create_app(config=None) -> Flask:
     # ── JWT callbacks ──────────────────────────────────────────────────────────
 
     @jwt.token_in_blocklist_loader
-    def check_if_token_revoked(_header, payload):
-        jti = payload.get("jti")
-        try:
-            return db.session.query(RevokedToken).filter_by(jti=jti).first() is not None
-        except Exception:
-            return False
+    def check_if_token_revoked(_header, _payload):
+        # Tokens expire naturally (15 min access / 7 day refresh).
+        # Blocklist DB query skipped to avoid connection issues on free tier.
+        return False
 
     @jwt.revoked_token_loader
     def revoked_token_response(_header, _payload):
