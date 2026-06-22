@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://levantien3.netlify.app/sitemap.xml
