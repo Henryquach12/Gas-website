@@ -53,9 +53,10 @@ def create_app(config=None) -> Flask:
         storage_uri=app.config.get("RATELIMIT_STORAGE_URL", "memory://"),
     )
 
+    cors_origins = app.config["FRONTEND_ORIGIN"]  # already a list from config.py
     CORS(
         app,
-        resources={r"/api/*": {"origins": app.config["FRONTEND_ORIGIN"]}},
+        resources={r"/api/*": {"origins": cors_origins}},
         supports_credentials=True,
     )
 

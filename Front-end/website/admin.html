@@ -337,6 +337,7 @@ const API_BASE = (window.location.hostname === 'localhost' || window.location.ho
 // ── Auth ──────────────────────────────────────────────────────────────────────
 let _token = sessionStorage.getItem('admin_token') || '';
 let _currentOrderRef = '';
+let _loggingIn = false; // tránh race condition giữa initAuth và login form
 
 function getToken()  { return _token; }
 function setToken(t) { _token = t; sessionStorage.setItem('admin_token', t); }
@@ -386,6 +387,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   errEl.style.display = 'none';
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
+  _loggingIn = true;
 
   try {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
@@ -409,6 +411,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   } finally {
     btn.innerHTML = 'Đăng nhập';
     btn.disabled = false;
+    _loggingIn = false;
   }
 });
 
@@ -419,6 +422,7 @@ function showApp() {
 }
 
 function doLogout() {
+  if (_loggingIn) return; // không can thiệp khi đang xử lý login
   clearToken();
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('appPage').style.display = 'none';

@@ -46,8 +46,9 @@ class Config:
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
-    FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5500")
+    # ── CORS — hỗ trợ nhiều origins, phân cách bằng dấu phẩy ────────────────
+    _raw_origin = os.environ.get("FRONTEND_ORIGIN", "https://levantien3.netlify.app")
+    FRONTEND_ORIGIN = [o.strip() for o in _raw_origin.split(",") if o.strip()]
 
     # ── SpeedSMS.vn notifications ─────────────────────────────────────────────
     SPEEDSMS_ACCESS_TOKEN = os.environ.get("SPEEDSMS_ACCESS_TOKEN", "")
