@@ -70,7 +70,7 @@ def audit(action: str, details: dict | None = None, user_id: int | None = None):
     uid = user_id
     if uid is None:
         try:
-            uid = get_jwt_identity()
+            uid = int(get_jwt_identity())
         except Exception:
             uid = None
 
@@ -105,7 +105,7 @@ def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
-        uid = get_jwt_identity()
+        uid = int(get_jwt_identity())
         user = db.session.get(User, uid)
         if not user or user.role != "admin":
             audit("unauthorized_admin_access")
@@ -120,7 +120,7 @@ def login_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         verify_jwt_in_request()
-        uid = get_jwt_identity()
+        uid = int(get_jwt_identity())
         user = db.session.get(User, uid)
         if not user or not user.is_active:
             abort(401)

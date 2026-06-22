@@ -139,8 +139,8 @@ def login():
     user.last_login = datetime.now(timezone.utc)
     db.session.commit()
 
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
+    access_token = create_access_token(identity=str(user.id))
+    refresh_token = create_refresh_token(identity=str(user.id))
     audit("login_success", {"email": email}, user_id=user.id)
 
     return jsonify({
@@ -153,11 +153,11 @@ def login():
 @auth_bp.post("/refresh")
 @jwt_required(refresh=True)
 def refresh():
-    uid = get_jwt_identity()
+    uid = int(get_jwt_identity())
     user = db.session.get(User, uid)
     if not user or not user.is_active:
         return jsonify({"error": "Unauthorized."}), 401
-    new_access = create_access_token(identity=uid)
+    new_access = create_access_token(identity=str(uid))
     return jsonify({"access_token": new_access}), 200
 
 
@@ -167,7 +167,7 @@ def logout():
     jwt = get_jwt()
     jti = jwt["jti"]
     exp = datetime.fromtimestamp(jwt["exp"], tz=timezone.utc)
-    uid = get_jwt_identity()
+    uid = int(get_jwt_identity())
 
     revoked = RevokedToken(jti=jti, user_id=uid, expires_at=exp)
     db.session.add(revoked)
@@ -179,7 +179,7 @@ def logout():
 @auth_bp.post("/change-password")
 @jwt_required()
 def change_password():
-    uid = get_jwt_identity()
+    uid = int(get_jwt_identity())
     user = db.session.get(User, uid)
     if not user:
         return jsonify({"error": "Unauthorized."}), 401
@@ -210,7 +210,7 @@ def change_password():
 @auth_bp.get("/me")
 @jwt_required()
 def me():
-    uid = get_jwt_identity()
+    uid = int(get_jwt_identity())
     user = db.session.get(User, uid)
     if not user:
         return jsonify({"error": "Not found."}), 404
