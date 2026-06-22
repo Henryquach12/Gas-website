@@ -214,6 +214,11 @@ document.getElementById('successClose').addEventListener('click', () => closeMod
 /* ===== Validation ===== */
 const PHONE_RE = /^(0[35789])\d{8}$/;
 
+function isLongXuyenAddress(address) {
+  const lower = address.toLowerCase();
+  return lower.includes('long xuyên') || lower.includes('long xuyen');
+}
+
 function markError(inputId, errorId, msg) {
   document.getElementById(inputId).classList.add('error');
   document.getElementById(inputId).classList.remove('valid');
@@ -255,9 +260,14 @@ function validateOrder() {
   else markValid('orderPhone', 'phoneError');
 
   const address = document.getElementById('orderAddress').value.trim();
-  if (address.length < 10)
+  if (address.length < 10) {
     ok = markError('orderAddress', 'addressError', 'Vui lòng nhập địa chỉ đầy đủ (ít nhất 10 ký tự).');
-  else markValid('orderAddress', 'addressError');
+  } else if (!isLongXuyenAddress(address)) {
+    ok = markError('orderAddress', 'addressError',
+      'Chúng tôi chỉ giao hàng trong TP. Long Xuyên, An Giang. Vui lòng nhập địa chỉ có "Long Xuyên".');
+  } else {
+    markValid('orderAddress', 'addressError');
+  }
 
   return ok;
 }
