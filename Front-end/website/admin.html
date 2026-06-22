@@ -671,13 +671,13 @@ function escHtml(str) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init: kiểm tra token âm thầm bằng fetch() thẳng (không qua apiFetch)
-// để tránh doLogout() xoá mất token mới sau khi user vừa đăng nhập xong
+// ── Init: kiểm tra token cũ âm thầm ────────────────────────────────────────
 async function initAuth() {
-  if (!_token) return;
+  const tokenAtStart = _token; // ghi nhớ token TẠI THỜI ĐIỂM này
+  if (!tokenAtStart) return;
   try {
     const res = await fetch(API_BASE + '/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${_token}` },
+      headers: { 'Authorization': `Bearer ${tokenAtStart}` },
     });
     if (res.ok && !_loggingIn) {
       const data = await res.json();
@@ -688,8 +688,9 @@ async function initAuth() {
       }
     }
   } catch {}
-  // Token cũ hoặc không hợp lệ — xoá âm thầm, không thay đổi UI
-  if (!_loggingIn) clearToken();
+  // Chỉ xoá token nếu không có login mới nào xảy ra trong lúc chờ
+  // (_token !== tokenAtStart nghĩa là user đã login và có token mới)
+  if (_token === tokenAtStart) clearToken();
 }
 initAuth();
 </script>
