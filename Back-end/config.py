@@ -48,11 +48,9 @@ class Config:
     # ── CORS ──────────────────────────────────────────────────────────────────
     FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5500")
 
-    # ── eSMS.vn notifications ─────────────────────────────────────────────────
-    ESMS_API_KEY = os.environ.get("ESMS_API_KEY", "")
-    ESMS_SECRET_KEY = os.environ.get("ESMS_SECRET_KEY", "")
-    # Comma-separated Vietnamese phone numbers, e.g. "0949666647,0468408537"
-    ESMS_PHONE_NUMBERS = os.environ.get("ESMS_PHONE_NUMBERS", "")
+    # ── SpeedSMS.vn notifications ─────────────────────────────────────────────
+    SPEEDSMS_ACCESS_TOKEN = os.environ.get("SPEEDSMS_ACCESS_TOKEN", "")
+    SPEEDSMS_PHONE_NUMBERS = os.environ.get("SPEEDSMS_PHONE_NUMBERS", "")
 
     # ── Rate limiting ─────────────────────────────────────────────────────────
     RATELIMIT_STORAGE_URL = os.environ.get("RATELIMIT_STORAGE_URL", "memory://")

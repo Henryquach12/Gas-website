@@ -22,11 +22,9 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: ESMS_API_KEY
+      - key: SPEEDSMS_ACCESS_TOKEN
         sync: false
-      - key: ESMS_SECRET_KEY
-        sync: false
-      - key: ESMS_PHONE_NUMBERS
+      - key: SPEEDSMS_PHONE_NUMBERS
         sync: false
       - key: FRONTEND_ORIGIN
         sync: false          # URL Netlify của bạn, VD: https://gas-le-van-tien.netlify.app

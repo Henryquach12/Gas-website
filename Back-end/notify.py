@@ -1,19 +1,21 @@
 """
-Order notification service — eSMS.vn (Vietnamese SMS provider).
+Order notification service — SpeedSMS.vn
 
 Setup:
-  1. Đăng ký tài khoản tại https://esms.vn
-  2. Vào mục "Tích hợp API" → lấy ApiKey và SecretKey
-  3. Nạp tiền (gói nhỏ nhất ~50.000đ)
-  4. Điền ESMS_API_KEY, ESMS_SECRET_KEY, ESMS_PHONE_NUMBERS vào .env
+  1. Đăng ký tại https://speedsms.vn
+  2. Đăng nhập → Tài khoản → Lấy Access Token
+  3. Nạp tiền (chuyển khoản nội địa)
+  4. Điền SPEEDSMS_ACCESS_TOKEN và SPEEDSMS_PHONE_NUMBERS vào .env
 """
 from __future__ import annotations
 
+import base64
 import threading
+
 import requests as http
 from flask import current_app
 
-ESMS_SEND_URL = "https://rest.esms.vn/MainService.svc/json/SendMultipleMessage_V4_get/"
+SPEEDSMS_URL = "https://api.speedsms.vn/index.php/sms/send"
 
 
 def _vnd(amount) -> str:
@@ -21,10 +23,6 @@ def _vnd(amount) -> str:
 
 
 def _build_sms(order, items: list) -> str:
-    """
-    Build a compact SMS message (Vietnamese Unicode ~160 chars/segment).
-    Keeps it short to minimise cost.
-    """
     products = ", ".join(
         f"{i.product_name_snapshot} x{i.quantity}" for i in items
     )
@@ -39,40 +37,42 @@ def _build_sms(order, items: list) -> str:
 
 
 def _send_sms(content: str, app) -> None:
-    api_key = app.config.get("ESMS_API_KEY", "")
-    secret_key = app.config.get("ESMS_SECRET_KEY", "")
-    raw_numbers = app.config.get("ESMS_PHONE_NUMBERS", "")
+    token = app.config.get("SPEEDSMS_ACCESS_TOKEN", "")
+    raw_numbers = app.config.get("SPEEDSMS_PHONE_NUMBERS", "")
 
-    if not api_key or not secret_key or not raw_numbers:
-        app.logger.warning("eSMS not configured — SMS notification skipped.")
+    if not token or not raw_numbers:
+        app.logger.warning("SpeedSMS chưa cấu hình — bỏ qua thông báo SMS.")
         return
 
     numbers = [n.strip() for n in raw_numbers.split(",") if n.strip()]
 
-    for phone in numbers:
-        payload = {
-            "ApiKey": api_key,
-            "Content": content,
-            "Phone": phone,
-            "SecretKey": secret_key,
-            "SmsType": "2",      # 2 = tin nhắn thường (không cần brandname)
-            "IsUnicode": "0",    # 0 = không dấu để tiết kiệm ký tự/giá
-        }
-        try:
-            resp = http.post(ESMS_SEND_URL, json=payload, timeout=10)
-            data = resp.json()
-            code = data.get("CodeResult") or data.get("code")
-            if str(code) == "100":
-                app.logger.info("eSMS sent to %s for order %s", phone, "")
-            else:
-                app.logger.error("eSMS error to %s: %s", phone, data)
-        except Exception as exc:
-            app.logger.error("eSMS request failed to %s: %s", phone, exc)
+    # SpeedSMS dùng HTTP Basic Auth: username=token, password=":x"
+    credentials = base64.b64encode(f"{token}:x".encode()).decode()
+    headers = {
+        "Authorization": f"Basic {credentials}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "to": numbers,
+        "content": content,
+        "sms_type": 2,   # 2 = tin nhắn thường, không cần brandname
+        "sender": "",
+    }
+
+    try:
+        resp = http.post(SPEEDSMS_URL, json=payload, headers=headers, timeout=10)
+        data = resp.json()
+        if data.get("status") == "success":
+            app.logger.info("SpeedSMS gửi thành công đến %s", numbers)
+        else:
+            app.logger.error("SpeedSMS lỗi: %s", data)
+    except Exception as exc:
+        app.logger.error("SpeedSMS request thất bại: %s", exc)
 
 
 def send_order_notification(order, items: list) -> None:
     """
-    Gửi SMS thông báo đến các số của chủ shop qua eSMS.vn.
+    Gửi SMS thông báo đến các số của chủ shop qua SpeedSMS.vn.
     Chạy trên thread riêng để không làm chậm response API.
     """
     app = current_app._get_current_object()
