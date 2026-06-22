@@ -354,13 +354,17 @@ async function apiFetch(path, opts = {}, silent = false) {
     },
   });
   if (res.status === 401) {
+    let body = '';
+    try { body = JSON.stringify(await res.clone().json()); } catch {}
+    console.error('[401]', path, body, 'token:', getToken() ? getToken().slice(-10) : 'EMPTY');
     doLogout();
-    if (!silent) throw new Error(`401 – Phiên đăng nhập hết hạn (${path})`);
+    if (!silent) throw new Error(`401 (${path}): ${body}`);
     return res;
   }
-  if (!res.ok && !silent) {
+  if (!res.ok) {
     const txt = await res.text().catch(() => '');
-    throw new Error(`Lỗi ${res.status} từ ${path}: ${txt.slice(0, 120)}`);
+    console.error(`[${res.status}]`, path, txt);
+    if (!silent) throw new Error(`Lỗi ${res.status} (${path}): ${txt.slice(0, 100)}`);
   }
   return res;
 }
@@ -469,22 +473,25 @@ function statusBadge(s) {
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 async function loadDashboard() {
+  // Load stats
   try {
-    const [dashRes, ordersRes] = await Promise.all([
-      apiFetch('/api/admin/dashboard'),
-      apiFetch('/api/orders/admin/all'),
-    ]);
-    const dash   = await dashRes.json();
-    const oData  = await ordersRes.json();
-
+    const dashRes = await apiFetch('/api/admin/dashboard');
+    const dash    = await dashRes.json();
     document.getElementById('st-products').textContent = dash.total_products ?? '-';
     document.getElementById('st-orders').textContent   = dash.total_orders ?? '-';
     document.getElementById('st-pending').textContent  = dash.pending_orders ?? '-';
     document.getElementById('st-revenue').textContent  =
       Number(dash.total_revenue_vnd || 0).toLocaleString('vi-VN') + 'đ';
-
-    const orders = (oData.orders || []).slice(0, 5);
-    const tbody  = document.getElementById('recentOrdersBody');
+  } catch (err) {
+    showToast(err.message, 'error');
+    return;
+  }
+  // Load recent orders separately — failure here doesn't block dashboard
+  try {
+    const ordersRes = await apiFetch('/api/orders/admin/all');
+    const oData     = await ordersRes.json();
+    const orders    = (oData.orders || []).slice(0, 5);
+    const tbody     = document.getElementById('recentOrdersBody');
     if (!orders.length) {
       tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="ei">📋</div>Chưa có đơn hàng nào</div></td></tr>';
       return;
@@ -498,7 +505,9 @@ async function loadDashboard() {
         <td style="color:var(--muted);font-size:.8rem">${fmtDate(o.created_at)}</td>
       </tr>`).join('');
   } catch (err) {
-    showToast(err.message, 'error');
+    console.warn('Recent orders load failed:', err.message);
+    document.getElementById('recentOrdersBody').innerHTML =
+      '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:1rem">Không tải được đơn hàng gần đây</td></tr>';
   }
 }
 
