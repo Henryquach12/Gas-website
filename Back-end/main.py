@@ -65,9 +65,10 @@ def create_app(config=None) -> Flask:
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(_header, payload):
         jti = payload.get("jti")
-        return db.session.query(
-            RevokedToken.query.filter_by(jti=jti).exists()
-        ).scalar()
+        try:
+            return db.session.query(RevokedToken).filter_by(jti=jti).first() is not None
+        except Exception:
+            return False
 
     @jwt.revoked_token_loader
     def revoked_token_response(_header, _payload):

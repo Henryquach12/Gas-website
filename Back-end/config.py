@@ -20,10 +20,11 @@ class Config:
         _db_url = _db_url.replace("postgresql://", "postgresql+pg8000://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = (
-        {"connect_args": {"ssl_context": True}}
-        if "pg8000" in _db_url else {}
-    )
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,
+        "pool_recycle": 280,
+        **({"connect_args": {"ssl_context": True}} if "pg8000" in _db_url else {}),
+    }
     # Encrypt column-level sensitive fields at rest
     FIELD_ENCRYPTION_KEY = os.environ["FIELD_ENCRYPTION_KEY"].encode()
 

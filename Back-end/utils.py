@@ -92,9 +92,10 @@ def audit(action: str, details: dict | None = None, user_id: int | None = None):
 
 def is_token_revoked(jwt_payload: dict) -> bool:
     jti = jwt_payload.get("jti")
-    return db.session.query(
-        RevokedToken.query.filter_by(jti=jti).exists()
-    ).scalar()
+    try:
+        return db.session.query(RevokedToken).filter_by(jti=jti).first() is not None
+    except Exception:
+        return False
 
 
 # ── Role-based access decorators ──────────────────────────────────────────────
