@@ -1,84 +1,111 @@
 """
-Order notification service — SpeedSMS.vn
+Order notification service — Gmail SMTP
 
-Setup:
-  1. Đăng ký tại https://speedsms.vn
-  2. Đăng nhập → Tài khoản → Lấy Access Token
-  3. Nạp tiền (chuyển khoản nội địa)
-  4. Điền SPEEDSMS_ACCESS_TOKEN và SPEEDSMS_PHONE_NUMBERS vào .env
+Setup trên Render Environment:
+  NOTIFY_EMAIL          = địa chỉ Gmail của bạn  (vd: abc@gmail.com)
+  NOTIFY_EMAIL_PASSWORD = App Password 16 ký tự từ Google
+    → myaccount.google.com → Bảo mật → Xác minh 2 bước (bật) → Mật khẩu ứng dụng → Tạo
 """
 from __future__ import annotations
 
-import base64
+import smtplib
 import threading
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-import requests as http
 from flask import current_app
-
-SPEEDSMS_URL = "https://api.speedsms.vn/index.php/sms/send"
 
 
 def _vnd(amount) -> str:
-    return f"{int(amount):,}d".replace(",", ".")
+    return f"{int(amount):,}đ".replace(",", ".")
 
 
-def _build_sms(order, items: list) -> str:
-    products = ", ".join(
-        f"{i.product_name_snapshot} x{i.quantity}" for i in items
-    )
-    return (
-        f"DON HANG MOI [{order.reference}]\n"
-        f"KH: {order.customer_name}\n"
-        f"DT: {order.customer_phone}\n"
-        f"DC: {order.customer_address}\n"
-        f"SP: {products}\n"
-        f"TONG: {_vnd(order.total)}"
+def _build_email(order, items: list) -> tuple[str, str]:
+    """Trả về (subject, body) dạng HTML."""
+    products_rows = "".join(
+        f"<tr><td>{i.product_name_snapshot}</td><td style='text-align:center'>{i.quantity}</td>"
+        f"<td style='text-align:right'>{_vnd(i.subtotal)}</td></tr>"
+        for i in items
     )
 
+    subject = f"[Đơn mới] {order.reference} — {order.customer_name}"
 
-def _send_sms(content: str, app) -> None:
-    token = app.config.get("SPEEDSMS_ACCESS_TOKEN", "")
-    raw_numbers = app.config.get("SPEEDSMS_PHONE_NUMBERS", "")
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
+      <h2 style="color:#2563eb">🛒 Đơn hàng mới — {order.reference}</h2>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+        <tr><td style="padding:6px 0;color:#666;width:130px">Khách hàng</td>
+            <td><strong>{order.customer_name}</strong></td></tr>
+        <tr><td style="padding:6px 0;color:#666">Điện thoại</td>
+            <td><strong>{order.customer_phone}</strong></td></tr>
+        <tr><td style="padding:6px 0;color:#666">Địa chỉ</td>
+            <td>{order.customer_address}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Ghi chú</td>
+            <td>{order.notes or "—"}</td></tr>
+      </table>
 
-    if not token or not raw_numbers:
-        app.logger.warning("SpeedSMS chưa cấu hình — bỏ qua thông báo SMS.")
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px">
+        <thead>
+          <tr style="background:#f8fafc">
+            <th style="padding:8px 12px;text-align:left">Sản phẩm</th>
+            <th style="padding:8px 12px;text-align:center">SL</th>
+            <th style="padding:8px 12px;text-align:right">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>{products_rows}</tbody>
+        <tfoot>
+          <tr style="background:#eff6ff">
+            <td colspan="2" style="padding:10px 12px;font-weight:bold">TỔNG CỘNG</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:bold;color:#2563eb;font-size:1.1em">
+              {_vnd(order.total)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <p style="color:#64748b;font-size:.85em;margin-top:20px">
+        Đại Lý Gas Lê Văn Tiền 3 — 665 Trần Hưng Đạo, Long Xuyên
+      </p>
+    </body></html>
+    """
+    return subject, body
+
+
+def _send_email(subject: str, body: str, app) -> None:
+    sender = app.config.get("NOTIFY_EMAIL", "")
+    password = app.config.get("NOTIFY_EMAIL_PASSWORD", "")
+
+    if not sender or not password:
+        app.logger.warning("Gmail chưa cấu hình — thiếu NOTIFY_EMAIL hoặc NOTIFY_EMAIL_PASSWORD.")
         return
 
-    numbers = [n.strip() for n in raw_numbers.split(",") if n.strip()]
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Gas Lê Văn Tiền 3 <{sender}>"
+    msg["To"] = sender   # gửi cho chính mình
 
-    # SpeedSMS dùng HTTP Basic Auth: username=token, password=":x"
-    credentials = base64.b64encode(f"{token}:x".encode()).decode()
-    headers = {
-        "Authorization": f"Basic {credentials}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "to": numbers,
-        "content": content,
-        "sms_type": 4,   # 4 = SMS đầu số ngẫu nhiên, không cần đăng ký brandname
-    }
+    msg.attach(MIMEText(body, "html", "utf-8"))
 
     try:
-        resp = http.post(SPEEDSMS_URL, json=payload, headers=headers, timeout=10)
-        data = resp.json()
-        if data.get("status") == "success":
-            app.logger.info("SpeedSMS gửi thành công đến %s", numbers)
-        else:
-            app.logger.error("SpeedSMS lỗi: %s", data)
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(sender, password)
+            server.sendmail(sender, sender, msg.as_string())
+        app.logger.info("Email thông báo đã gửi đến %s", sender)
     except Exception as exc:
-        app.logger.error("SpeedSMS request thất bại: %s", exc)
+        app.logger.error("Gửi email thất bại: %s", exc)
 
 
 def send_order_notification(order, items: list) -> None:
     """
-    Gửi SMS thông báo đến các số của chủ shop qua SpeedSMS.vn.
+    Gửi email thông báo đơn hàng mới đến Gmail của chủ shop.
     Chạy trên thread riêng để không làm chậm response API.
     """
     app = current_app._get_current_object()
-    content = _build_sms(order, items)
+    subject, body = _build_email(order, items)
 
     def _dispatch():
         with app.app_context():
-            _send_sms(content, app)
+            _send_email(subject, body, app)
 
     threading.Thread(target=_dispatch, daemon=True).start()
