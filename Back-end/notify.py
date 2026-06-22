@@ -55,8 +55,7 @@ def _send_sms(content: str, app) -> None:
     payload = {
         "to": numbers,
         "content": content,
-        "sms_type": 2,   # 2 = tin nhắn thường, không cần brandname
-        "sender": "",
+        "sms_type": 4,   # 4 = SMS đầu số ngẫu nhiên, không cần đăng ký brandname
     }
 
     try:
