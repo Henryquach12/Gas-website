@@ -334,5 +334,26 @@ document.getElementById('orderForm').addEventListener('submit', async (e) => {
   openModal('successModal');
 });
 
+/* ===== Load products from API ===== */
+async function loadProductsFromAPI() {
+  try {
+    const res = await fetch(`${API_BASE}/api/products/`);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    const products = (data.products || []).map(p => ({
+      id:          String(p.id),
+      name:        p.name,
+      category:    p.category,
+      price:       Number(p.price),
+      description: p.description || '',
+      image:       p.image_url || '',
+    }));
+    localStorage.setItem('gas_products', JSON.stringify(products));
+  } catch {
+    // Fallback to localStorage if API unreachable
+  }
+  renderProducts();
+}
+
 /* ===== Init ===== */
-renderProducts();
+loadProductsFromAPI();
