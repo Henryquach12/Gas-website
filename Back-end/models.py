@@ -67,7 +67,7 @@ class Product(db.Model):
     price = db.Column(db.Numeric(12, 0), nullable=False)   # VND — no decimals
     stock = db.Column(db.Integer, nullable=True)
     description = db.Column(db.Text, nullable=True)
-    image_url = db.Column(db.String(512), nullable=True)
+    image_url = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = db.Column(db.DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))

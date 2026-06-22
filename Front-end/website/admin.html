@@ -160,6 +160,22 @@
     .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Image upload */
+    .img-upload-area {
+      border: 2px dashed var(--border); border-radius: 10px; padding: 1.25rem;
+      text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    .img-upload-area:hover { border-color: var(--primary); background: #f0f7ff; }
+    .img-upload-area .upload-icon { font-size: 2rem; margin-bottom: .4rem; }
+    .img-upload-area p { font-size: .8rem; color: var(--muted); margin: 0; }
+    .img-preview-wrap {
+      display: flex; align-items: flex-start; gap: .75rem; flex-wrap: wrap;
+    }
+    .img-preview-wrap img {
+      max-width: 140px; max-height: 110px; object-fit: cover;
+      border-radius: 8px; border: 1.5px solid var(--border);
+    }
+
     @media (max-width: 640px) {
       .sidebar { width: 60px; }
       .sidebar-brand span, .nav-item span { display: none; }
@@ -295,7 +311,12 @@
       <div class="form-group"><label>Giá (VNĐ) *</label><input type="number" id="pPrice" required min="0" step="1000"></div>
       <div class="form-group"><label>Tồn kho</label><input type="number" id="pStock" min="0"></div>
       <div class="form-group"><label>Mô tả</label><textarea id="pDesc" rows="3" maxlength="2000"></textarea></div>
-      <div class="form-group"><label>URL hình ảnh (https://...)</label><input type="url" id="pImage" placeholder="https://..."></div>
+      <div class="form-group">
+        <label>Hình ảnh sản phẩm</label>
+        <input type="file" id="pImageFile" accept="image/*" style="display:none">
+        <input type="hidden" id="pImage">
+        <div id="pImagePreview" style="margin-top:.4rem"></div>
+      </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" onclick="closeModal('productModal')">Hủy</button>
         <button type="submit" class="btn btn-primary" id="productSaveBtn">Lưu</button>
@@ -560,6 +581,8 @@ document.getElementById('addProductBtn').addEventListener('click', () => {
   document.getElementById('productModalTitle').textContent = 'Thêm sản phẩm';
   document.getElementById('productForm').reset();
   document.getElementById('pId').value = '';
+  document.getElementById('pImage').value = '';
+  _renderImageUpload(null);
   openModal('productModal');
 });
 
@@ -576,6 +599,7 @@ async function editProduct(id) {
     document.getElementById('pStock').value    = p.stock ?? '';
     document.getElementById('pDesc').value     = p.description || '';
     document.getElementById('pImage').value    = p.image_url || '';
+    _renderImageUpload(p.image_url || null);
     openModal('productModal');
   } catch (err) { showToast(err.message, 'error'); }
 }
@@ -676,6 +700,61 @@ document.getElementById('orderSaveBtn').addEventListener('click', async () => {
     loadOrders();
   } catch (err) { showToast(err.message, 'error'); }
   finally { btn.disabled = false; btn.textContent = 'Lưu'; }
+});
+
+// ── Image upload ──────────────────────────────────────────────────────────────
+function _renderImageUpload(existingUrl) {
+  const preview = document.getElementById('pImagePreview');
+  if (existingUrl) {
+    preview.innerHTML = `
+      <div class="img-preview-wrap">
+        <img src="${existingUrl.startsWith('data:') ? existingUrl : existingUrl}" alt="preview">
+        <div>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem">Ảnh hiện tại</p>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="_clearImage()">Xóa ảnh</button>
+          <br><br>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('pImageFile').click()">Đổi ảnh</button>
+        </div>
+      </div>`;
+  } else {
+    preview.innerHTML = `
+      <div class="img-upload-area" onclick="document.getElementById('pImageFile').click()">
+        <div class="upload-icon">🖼️</div>
+        <p>Nhấn để chọn ảnh từ máy tính</p>
+        <p>JPG, PNG, WEBP · Tự động thu nhỏ về tối đa 800×800px</p>
+      </div>`;
+  }
+}
+
+function _clearImage() {
+  document.getElementById('pImage').value = '';
+  document.getElementById('pImageFile').value = '';
+  _renderImageUpload(null);
+}
+
+document.getElementById('pImageFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      document.getElementById('pImage').value = dataUrl;
+      _renderImageUpload(dataUrl);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
 });
 
 // ── Utils ─────────────────────────────────────────────────────────────────────

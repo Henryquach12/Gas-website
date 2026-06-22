@@ -156,6 +156,15 @@ def create_app(config=None) -> Flask:
 
     with app.app_context():
         db.create_all()
+        # Migrate image_url column từ VARCHAR(512) sang TEXT nếu cần
+        try:
+            with db.engine.connect() as _conn:
+                _conn.execute(db.text(
+                    "ALTER TABLE products ALTER COLUMN image_url TYPE TEXT"
+                ))
+                _conn.commit()
+        except Exception:
+            pass  # đã là TEXT hoặc bảng chưa tồn tại
         _bootstrap_admin(app)
 
     return app
