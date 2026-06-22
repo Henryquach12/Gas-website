@@ -60,12 +60,17 @@ def create_app(config=None) -> Flask:
         supports_credentials=True,
     )
 
+    # ── Log JWT key source on startup ─────────────────────────────────────────
+    import os as _os
+    _jwt_src = "JWT_SECRET_KEY" if _os.environ.get("JWT_SECRET_KEY") else "SECRET_KEY(fallback)"
+    _key_len = len(app.config.get("JWT_SECRET_KEY", ""))
+    app.logger.warning("JWT key source: %s | key length: %d chars", _jwt_src, _key_len)
+
     # ── JWT callbacks ──────────────────────────────────────────────────────────
 
     @jwt.token_in_blocklist_loader
     def check_if_token_revoked(_header, _payload):
         # Tokens expire naturally (15 min access / 7 day refresh).
-        # Blocklist DB query skipped to avoid connection issues on free tier.
         return False
 
     @jwt.revoked_token_loader
@@ -77,11 +82,13 @@ def create_app(config=None) -> Flask:
         return jsonify({"error": "Token has expired."}), 401
 
     @jwt.invalid_token_loader
-    def invalid_token_response(_reason):
+    def invalid_token_response(reason):
+        app.logger.warning("JWT invalid token: %s", reason)
         return jsonify({"error": "Invalid token."}), 401
 
     @jwt.unauthorized_loader
-    def missing_token_response(_reason):
+    def missing_token_response(reason):
+        app.logger.warning("JWT missing token: %s", reason)
         return jsonify({"error": "Authentication required."}), 401
 
     # ── Security headers on every response ────────────────────────────────────

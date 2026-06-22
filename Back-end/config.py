@@ -29,7 +29,9 @@ class Config:
     FIELD_ENCRYPTION_KEY = os.environ["FIELD_ENCRYPTION_KEY"].encode()
 
     # ── JWT ───────────────────────────────────────────────────────────────────
-    JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
+    # JWT_SECRET_KEY = SECRET_KEY để không cần env var riêng, tránh mismatch
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or os.environ["SECRET_KEY"]
+    _jwt_source = "JWT_SECRET_KEY" if os.environ.get("JWT_SECRET_KEY") else "SECRET_KEY (fallback)"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(
         seconds=int(os.environ.get("JWT_ACCESS_EXPIRES", 900))
     )
