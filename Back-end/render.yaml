@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: gas-store-api
+    env: python
+    region: singapore        # gần Việt Nam nhất
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      # Các key bên dưới cần điền thủ công trên Render dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        sync: false          # tạo bằng: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: DATABASE_URL
+        sync: false          # lấy từ Supabase → Settings → Database → Connection string
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ESMS_API_KEY
+        sync: false
+      - key: ESMS_SECRET_KEY
+        sync: false
+      - key: ESMS_PHONE_NUMBERS
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false          # URL Netlify của bạn, VD: https://gas-le-van-tien.netlify.app
+      - key: ADMIN_BOOTSTRAP_EMAIL
+        sync: false
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false

@@ -26,6 +26,7 @@ from marshmallow import Schema, fields, validate, ValidationError
 
 from models import db, Order, OrderItem, Product
 from utils import sanitize, audit, is_valid_vn_phone, is_long_xuyen_address, login_required
+from notify import send_order_notification
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 
@@ -200,12 +201,12 @@ def stripe_webhook():
     if event["type"] == "payment_intent.succeeded":
         if order and order.status == "pending":
             order.status = "paid"
-            # Decrement stock
             for item in order.items:
                 if item.product and item.product.stock is not None:
                     item.product.stock = max(0, item.product.stock - item.quantity)
             db.session.commit()
             audit("payment_succeeded", {"order_ref": order.reference if order else intent["id"]})
+            send_order_notification(order, list(order.items))
 
     elif event["type"] == "payment_intent.payment_failed":
         if order and order.status == "pending":
@@ -214,3 +215,70 @@ def stripe_webhook():
             audit("payment_failed", {"order_ref": order.reference if order else intent["id"]})
 
     return jsonify({"received": True}), 200
+
+
+# ── COD / direct order (no card payment) ──────────────────────────────────────
+
+class CodSchema(Schema):
+    customer_name = fields.Str(required=True, validate=validate.Length(min=2, max=100))
+    customer_phone = fields.Str(required=True)
+    customer_address = fields.Str(required=True, validate=validate.Length(min=10, max=500))
+    notes = fields.Str(load_default="", validate=validate.Length(max=500))
+    product_name = fields.Str(required=True, validate=validate.Length(min=1, max=255))
+    product_price = fields.Int(required=True, validate=validate.Range(min=0))
+    quantity = fields.Int(required=True, validate=validate.Range(min=1, max=99))
+
+
+@payments_bp.post("/cod")
+def place_cod_order():
+    """
+    Accept a cash-on-delivery order from the frontend (no card required).
+    Saves the order and fires SMS to the store owner numbers.
+    Rate-limited via the blueprint limiter (5/min).
+    """
+    try:
+        data = CodSchema().load(request.get_json(silent=True) or {})
+    except ValidationError as e:
+        return jsonify({"error": "Validation failed", "details": e.messages}), 422
+
+    phone = sanitize(data["customer_phone"])
+    if not is_valid_vn_phone(phone):
+        return jsonify({"error": "Số điện thoại không hợp lệ."}), 422
+
+    address = sanitize(data["customer_address"])
+    if not is_long_xuyen_address(address):
+        return jsonify({
+            "error": "Chúng tôi chỉ giao hàng trong TP. Long Xuyên, An Giang."
+        }), 422
+
+    subtotal = data["product_price"] * data["quantity"]
+
+    order = Order(
+        reference=_generate_order_ref(),
+        customer_name=sanitize(data["customer_name"]),
+        customer_phone=phone,
+        customer_address=address,
+        notes=sanitize(data.get("notes") or ""),
+        total=subtotal,
+        status="pending",
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    item = OrderItem(
+        order_id=order.id,
+        product_name_snapshot=sanitize(data["product_name"]),
+        unit_price_snapshot=data["product_price"],
+        quantity=data["quantity"],
+        subtotal=subtotal,
+    )
+    db.session.add(item)
+    db.session.commit()
+
+    audit("cod_order_placed", {"order_ref": order.reference})
+    send_order_notification(order, [item])
+
+    return jsonify({
+        "message": "Đặt hàng thành công! Chúng tôi sẽ liên hệ xác nhận sớm.",
+        "order_reference": order.reference,
+    }), 201

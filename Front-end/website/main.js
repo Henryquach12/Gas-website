@@ -272,8 +272,13 @@ function validateOrder() {
   return ok;
 }
 
+// ── Đổi thành URL Render khi deploy, VD: 'https://gas-store-api.onrender.com' ──
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : 'https://gas-store-api.onrender.com';  // ← thay tên này sau khi tạo service trên Render
+
 /* ===== Submit order ===== */
-document.getElementById('orderForm').addEventListener('submit', (e) => {
+document.getElementById('orderForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!validateOrder()) return;
 
@@ -286,6 +291,7 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
   const address = document.getElementById('orderAddress').value.trim();
   const note    = document.getElementById('orderNote').value.trim();
 
+  // Save locally so the admin panel can still see it
   saveOrder({
     id:           'ord_' + Date.now(),
     productId:    p.id,
@@ -300,6 +306,25 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
     status:       'Chờ xác nhận',
     createdAt:    new Date().toISOString(),
   });
+
+  // Notify store owner via SMS through backend
+  try {
+    await fetch(`${API_BASE}/api/payments/cod`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_name:    name,
+        customer_phone:   phone,
+        customer_address: address,
+        notes:            note,
+        product_name:     p.name,
+        product_price:    p.price,
+        quantity:         qty,
+      }),
+    });
+  } catch {
+    // Silent — order is already saved locally; SMS is best-effort
+  }
 
   closeModal('orderModal');
   currentProductId = null;

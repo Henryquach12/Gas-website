@@ -12,8 +12,17 @@ class Config:
     TESTING = False
 
     # ── Database ──────────────────────────────────────────────────────────────
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///gas_store.db")
+    _db_url = os.environ.get("DATABASE_URL", "sqlite:///gas_store.db")
+    # Supabase / older Heroku-style URLs use "postgres://" — SQLAlchemy needs "postgresql://"
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Require SSL for remote PostgreSQL (Supabase), skip for local SQLite
+    SQLALCHEMY_ENGINE_OPTIONS = (
+        {"connect_args": {"sslmode": "require"}}
+        if "postgresql" in _db_url else {}
+    )
     # Encrypt column-level sensitive fields at rest
     FIELD_ENCRYPTION_KEY = os.environ["FIELD_ENCRYPTION_KEY"].encode()
 
@@ -38,6 +47,12 @@ class Config:
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://localhost:5500")
+
+    # ── eSMS.vn notifications ─────────────────────────────────────────────────
+    ESMS_API_KEY = os.environ.get("ESMS_API_KEY", "")
+    ESMS_SECRET_KEY = os.environ.get("ESMS_SECRET_KEY", "")
+    # Comma-separated Vietnamese phone numbers, e.g. "0949666647,0468408537"
+    ESMS_PHONE_NUMBERS = os.environ.get("ESMS_PHONE_NUMBERS", "")
 
     # ── Rate limiting ─────────────────────────────────────────────────────────
     RATELIMIT_STORAGE_URL = os.environ.get("RATELIMIT_STORAGE_URL", "memory://")
