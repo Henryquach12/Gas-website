@@ -342,7 +342,8 @@ function getToken()  { return _token; }
 function setToken(t) { _token = t; sessionStorage.setItem('admin_token', t); }
 function clearToken(){ _token = ''; sessionStorage.removeItem('admin_token'); }
 
-async function apiFetch(path, opts = {}) {
+// silent=true: không hiện toast khi hết hạn (dùng cho kiểm tra tự động lúc load trang)
+async function apiFetch(path, opts = {}, silent = false) {
   const res = await fetch(API_BASE + path, {
     ...opts,
     headers: {
@@ -351,7 +352,11 @@ async function apiFetch(path, opts = {}) {
       ...(opts.headers || {}),
     },
   });
-  if (res.status === 401) { doLogout(); throw new Error('Phiên đăng nhập hết hạn.'); }
+  if (res.status === 401) {
+    doLogout();
+    if (!silent) throw new Error('Phiên đăng nhập hết hạn.');
+    return res;
+  }
   return res;
 }
 
@@ -396,7 +401,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if (data.user?.role !== 'admin') throw new Error('Tài khoản này không có quyền admin.');
 
     setToken(data.access_token);
-    document.getElementById('adminEmail').textContent = data.user.email;
+    document.getElementById('adminEmail').textContent = data.user.name || 'Admin';
     showApp();
   } catch (err) {
     errEl.textContent = err.message;
@@ -662,12 +667,23 @@ function escHtml(str) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-if (_token) {
-  document.getElementById('loginPage').style.display = 'none';
-  document.getElementById('appPage').style.display   = 'block';
-  showApp();
+// ── Init: kiểm tra token âm thầm, không hiện toast nếu hết hạn ──────────────
+async function initAuth() {
+  if (!_token) return;
+  try {
+    const res = await apiFetch('/api/auth/me', {}, true);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.role === 'admin') {
+        document.getElementById('adminEmail').textContent = data.name || 'Admin';
+        showApp();
+        return;
+      }
+    }
+  } catch {}
+  clearToken();
 }
+initAuth();
 </script>
 </body>
 </html>
