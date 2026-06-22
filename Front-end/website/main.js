@@ -275,7 +275,7 @@ function validateOrder() {
 // ── Đổi thành URL Render khi deploy, VD: 'https://gas-store-api.onrender.com' ──
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'http://localhost:5000'
-  : 'https://gas-store-api.onrender.com';  // ← thay tên này sau khi tạo service trên Render
+  : 'https://gas-website-mpjm.onrender.com';
 
 /* ===== Submit order ===== */
 document.getElementById('orderForm').addEventListener('submit', async (e) => {
