@@ -22,13 +22,21 @@ ALLOWED_CATEGORIES = ["Bình Gas", "Bếp Gas", "Bình Nước", "Nệm", "Phụ
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
+def _validate_image(value):
+    if value is None:
+        return
+    if value.startswith("data:image/") or value.startswith("https://"):
+        return
+    raise validate.ValidationError("Phải là URL https:// hoặc ảnh tải lên (data:image/...).")
+
+
 class ProductSchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=2, max=255))
     category = fields.Str(required=True, validate=validate.OneOf(ALLOWED_CATEGORIES))
     price = fields.Decimal(required=True, places=0)
     stock = fields.Int(load_default=None, validate=validate.Range(min=0))
     description = fields.Str(load_default=None, validate=validate.Length(max=2000))
-    image_url = fields.Url(load_default=None, schemes={"https"})
+    image_url = fields.Str(load_default=None, validate=_validate_image)
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
