@@ -13,15 +13,16 @@ class Config:
 
     # ── Database ──────────────────────────────────────────────────────────────
     _db_url = os.environ.get("DATABASE_URL", "sqlite:///gas_store.db")
-    # Supabase / older Heroku-style URLs use "postgres://" — SQLAlchemy needs "postgresql://"
+    # Đổi sang pg8000 driver (thuần Python, hỗ trợ mọi Python version)
     if _db_url.startswith("postgres://"):
-        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+        _db_url = _db_url.replace("postgres://", "postgresql+pg8000://", 1)
+    elif _db_url.startswith("postgresql://"):
+        _db_url = _db_url.replace("postgresql://", "postgresql+pg8000://", 1)
     SQLALCHEMY_DATABASE_URI = _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    # Require SSL for remote PostgreSQL (Supabase), skip for local SQLite
     SQLALCHEMY_ENGINE_OPTIONS = (
-        {"connect_args": {"sslmode": "require"}}
-        if "postgresql" in _db_url else {}
+        {"connect_args": {"ssl_context": True}}
+        if "pg8000" in _db_url else {}
     )
     # Encrypt column-level sensitive fields at rest
     FIELD_ENCRYPTION_KEY = os.environ["FIELD_ENCRYPTION_KEY"].encode()
