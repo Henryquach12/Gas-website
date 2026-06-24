@@ -1023,9 +1023,7 @@ a {
 
 .store-photo {
   width: 100%;
-  max-height: 600px;
-  object-fit: contain;
-  background: #111;
+  height: auto;
   display: block;
 }
 
