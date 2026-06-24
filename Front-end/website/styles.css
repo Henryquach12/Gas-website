@@ -205,24 +205,20 @@ a {
   display: flex;
   align-items: center;
   padding-top: 64px;
-  background: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
-              url('picture/store.jpg') center/cover no-repeat;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
   position: relative;
   overflow: hidden;
 }
 
-#hero h1,
-#hero h1 .highlight,
-#hero p {
-  color: #fff;
-}
-
-#hero h1 .highlight {
-  color: #93c5fd;
-}
-
 #hero::before {
-  display: none;
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+  border-radius: 50%;
 }
 
 .hero-content {
@@ -233,8 +229,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(255,255,255,0.15);
-  color: #fff !important;
+  background: #dbeafe;
   color: var(--color-primary);
   font-size: 0.8rem;
   font-weight: 600;
