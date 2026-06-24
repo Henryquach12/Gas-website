@@ -283,8 +283,22 @@
                 <option value="cancelled">Đã hủy</option>
               </select>
             </div>
+            <div id="bulkBar" style="display:none;align-items:center;gap:10px;padding:10px 16px;background:#eff6ff;border-bottom:1px solid #dbeafe;flex-wrap:wrap">
+              <span id="bulkCount" style="font-size:.9rem;color:#2563eb;font-weight:600"></span>
+              <select id="bulkStatusSelect" class="btn btn-ghost btn-sm">
+                <option value="pending">Chờ xác nhận</option>
+                <option value="processing">Đang xử lý</option>
+                <option value="delivered">Đã giao</option>
+                <option value="cancelled">Đã hủy</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="applyBulkStatus()">Áp dụng</button>
+              <button class="btn btn-ghost btn-sm" onclick="clearSelection()">Bỏ chọn</button>
+            </div>
             <div class="table-wrap"><table>
-              <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>SĐT</th><th>Địa chỉ</th><th>Sản phẩm</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+              <thead><tr>
+                <th style="width:36px"><input type="checkbox" id="selectAllOrders" title="Chọn tất cả"></th>
+                <th>Mã đơn</th><th>Khách hàng</th><th>SĐT</th><th>Địa chỉ</th><th>Sản phẩm</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th>
+              </tr></thead>
               <tbody id="ordersBody"></tbody>
             </table></div>
           </div>
@@ -652,19 +666,20 @@ document.getElementById('orderStatusFilter').addEventListener('change', loadOrde
 async function loadOrders() {
   const tbody  = document.getElementById('ordersBody');
   const status = document.getElementById('orderStatusFilter').value;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--muted)">Đang tải...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--muted)">Đang tải...</td></tr>';
   try {
     const url = '/api/orders/admin/all' + (status ? `?status=${status}` : '');
     const res  = await apiFetch(url);
     const data = await res.json();
     const orders = data.orders || [];
     if (!orders.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="ei">🛒</div>Không có đơn hàng nào</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="ei">🛒</div>Không có đơn hàng nào</div></td></tr>';
       return;
     }
     tbody.innerHTML = orders.map(o => {
       const items = (o.items || []).map(i => `${i.product_name} x${i.quantity}`).join(', ');
       return `<tr>
+        <td><input type="checkbox" class="order-cb" data-ref="${o.reference}" onchange="updateBulkBar()"></td>
         <td><code style="font-size:.78rem">${o.reference}</code></td>
         <td>${escHtml(o.customer_name || '-')}</td>
         <td>${escHtml(o.customer_phone || '-')}</td>
@@ -675,7 +690,52 @@ async function loadOrders() {
         <td><button class="btn btn-ghost btn-sm" onclick="openOrderUpdate('${o.reference}','${o.status}')">Cập nhật</button></td>
       </tr>`;
     }).join('');
+    document.getElementById('selectAllOrders').checked = false;
+    updateBulkBar();
   } catch (err) { showToast(err.message, 'error'); }
+}
+
+document.getElementById('selectAllOrders').addEventListener('change', function() {
+  document.querySelectorAll('.order-cb').forEach(cb => cb.checked = this.checked);
+  updateBulkBar();
+});
+
+function updateBulkBar() {
+  const checked = document.querySelectorAll('.order-cb:checked');
+  const bar = document.getElementById('bulkBar');
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulkCount').textContent = `Đã chọn ${checked.length} đơn`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearSelection() {
+  document.querySelectorAll('.order-cb').forEach(cb => cb.checked = false);
+  document.getElementById('selectAllOrders').checked = false;
+  updateBulkBar();
+}
+
+async function applyBulkStatus() {
+  const checked = [...document.querySelectorAll('.order-cb:checked')];
+  if (!checked.length) return;
+  const status = document.getElementById('bulkStatusSelect').value;
+  const btn = document.querySelector('#bulkBar .btn-primary');
+  btn.disabled = true; btn.textContent = '...';
+  let ok = 0, fail = 0;
+  for (const cb of checked) {
+    try {
+      const res = await apiFetch(`/api/orders/admin/${cb.dataset.ref}/status`, {
+        method: 'PUT', body: JSON.stringify({ status }),
+      });
+      if (res.ok) ok++; else fail++;
+    } catch { fail++; }
+  }
+  btn.disabled = false; btn.textContent = 'Áp dụng';
+  if (ok) showToast(`Đã cập nhật ${ok} đơn hàng.`, 'success');
+  if (fail) showToast(`${fail} đơn thất bại.`, 'error');
+  loadOrders();
 }
 
 function openOrderUpdate(ref, currentStatus) {
