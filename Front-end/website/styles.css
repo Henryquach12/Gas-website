@@ -1009,6 +1009,32 @@ a {
   padding: 6rem 0;
 }
 
+.store-photo-wrap {
+  margin-bottom: 2.5rem;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+.store-photo {
+  width: 100%;
+  max-height: 460px;
+  object-fit: cover;
+  display: block;
+}
+
+.store-photo-caption {
+  background: #1e293b;
+  color: #cbd5e1;
+  text-align: center;
+  padding: .75rem 1rem;
+  font-size: .9rem;
+}
+
+.store-photo-caption strong {
+  color: #fff;
+}
+
 .info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
