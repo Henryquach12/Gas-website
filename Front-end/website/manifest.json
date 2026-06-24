@@ -1,0 +1,16 @@
+{
+  "name": "Đại Lý Gas Lê Văn Tiền 3",
+  "short_name": "Gas Tiền 3",
+  "description": "Đại lý gas tại Long Xuyên, An Giang",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#eff6ff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "picture/logo_transparent.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}
